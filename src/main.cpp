@@ -1,25 +1,36 @@
 #include "aws_util.h"
 #include <iostream>
 #include "HttpClient.h"
+#include <time.h>
+#include <sstream>
+#include <unistd.h>
 
 using namespace std;
 
 int main(int argc, char** argv){
-/*
-	bool ret = aws_util::put_s3("tmp/a", "prot0", "a");
-	aws_util::rm_s3("prot0", "a");
-	cout << ret << endl;
-*/
-
-	//aws_util::start_transcribe_job("~/a.mp3", "prot0", "0");
-/*
-	auto ss = aws_util::list_transcribe_job_completed();
-	for(auto ite = ss.begin();ite != ss.end();++ite){
-		cout << *ite << endl;
+	if(argc < 2){
+		printf("%s <path_mp3>\n", *(argv+0));
+		return 1;
 	}
-*/
-	string transcription = aws_util::get_transcribe_transcription("0");
-	cout << transcription << endl;
+	const char* path_mp3 = *(argv+1);
 
+	long t = time(NULL);
+	stringstream ss;
+	ss << t;
+	string request_id = ss.str();
+	aws_util::start_transcribe_job(path_mp3, "prot0", request_id.c_str());
+	cout << "request_id:" << request_id << endl;
+	
+	for(int i=0;i<100;++i){
+		usleep(10 * 1000 * 1000);
+		cout << i << endl;
+		string url = aws_util::get_transcribe_transcription_url(request_id);
+		cout << "url:" << url << endl;
+		if(url.size() > 0){
+			string transcription = aws_util::get_transcribe_transcription(url);
+			cout << transcription << endl;
+			break;
+		}
+	}
 	return 0;
 }

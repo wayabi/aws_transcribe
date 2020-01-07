@@ -147,6 +147,14 @@ std::string aws_util::get_transcribe_transcription_url(const std::string& reques
 	
 	picojson::value val;
 	picojson::parse(val, ret);
+
+	string status = val.get<picojson::object>()
+	["TranscriptionJob"].get<picojson::object>()
+	["TranscriptionJobStatus"].get<std::string>();
+	if(status != "COMPLETED"){
+		return "";
+	}
+
 	string url = val.get<picojson::object>()
 	["TranscriptionJob"].get<picojson::object>()
 	["Transcript"].get<picojson::object>()
@@ -154,10 +162,9 @@ std::string aws_util::get_transcribe_transcription_url(const std::string& reques
 	return url;
 }
 
-std::string aws_util::get_transcribe_transcription(const std::string& request_id)
+std::string aws_util::get_transcribe_transcription(const std::string& s3_url)
 {
-	string url = get_transcribe_transcription_url(request_id);
-	HttpClient http_client(url);
+	HttpClient http_client(s3_url);
 	http_client.execute();
 	string json = http_client.getStringResponse();
 
@@ -172,3 +179,14 @@ std::string aws_util::get_transcribe_transcription(const std::string& request_id
 	}
 	return "";
 }
+
+bool aws_util::delete_transcribe_job(const std::string& request_id)
+{
+	stringstream ss;
+	ss << "aws transcribe delete-transcription-job "
+	<< "--transcription-job-name " << request_id;
+	string ret = aws_util::exec(ss.str().c_str());
+	
+	return true;
+}
+
