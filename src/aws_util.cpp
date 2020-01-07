@@ -9,6 +9,7 @@
 #include <fstream>
 
 #include "picojson.h"
+#include "HttpClient.h"
 #include "aws_util.h"
 
 using namespace std;
@@ -151,4 +152,23 @@ std::string aws_util::get_transcribe_transcription_url(const std::string& reques
 	["Transcript"].get<picojson::object>()
 	["TranscriptFileUri"].get<std::string>();
 	return url;
+}
+
+std::string aws_util::get_transcribe_transcription(const std::string& request_id)
+{
+	string url = get_transcribe_transcription_url(request_id);
+	HttpClient http_client(url);
+	http_client.execute();
+	string json = http_client.getStringResponse();
+
+	picojson::value val;
+	picojson::parse(val, json);
+	picojson::array aa = val.get<picojson::object>()
+	["results"].get<picojson::object>()
+	["transcripts"].get<picojson::array>();
+	for(picojson::array::iterator ite = aa.begin();ite != aa.end();++ite){
+		picojson::object obj = ite->get<picojson::object>();
+		return obj["transcript"].get<std::string>();
+	}
+	return "";
 }

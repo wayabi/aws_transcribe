@@ -4,107 +4,104 @@
 const char * HttpClient::FORMAT_CERT = "PEM";
 const char * HttpClient::FORMAT_KEY = "PEM";
 
-HttpClient::HttpClient(string url_)
+using namespace std;
+
+HttpClient::HttpClient(const std::string& url)
 {
-	this->url = url_;
-	this->header_http = "";
-	this->string_post = "";
+	url_ = url;
+	header_http_ = "";
+	string_post_ = "";
 
-	this->flag_communication_error = false;
-	this->string_communication_error = "";
+	flag_communication_error_ = false;
+	string_communication_error_ = "";
 
-	this->timeout = 60;//default
-	this->multipart_post = NULL;
+	timeout_ = 60;//default
+	multipart_post_ = NULL;
 
-	this->buf_response_callback = NULL;
-	this->size_response_callback = 0;
-	this->headerlist = NULL;
-	this->response = "";
-	this->code_response = -1;
-	this->curl_return_code = -1;
+	buf_response_callback_ = NULL;
+	size_response_callback_ = 0;
+	headerlist_ = NULL;
+	response_ = "";
+	code_response_ = -1;
+	curl_return_code_ = -1;
 }
 
 HttpClient::~HttpClient()
 {
-	if(this->buf_response_callback) free(this->buf_response_callback);
+	if(buf_response_callback_) free(buf_response_callback_);
 }
 
 string HttpClient::getStringError()
 {
-	return this->string_communication_error;
+	return string_communication_error_;
 }
 
-void HttpClient::setURL(string url_)
+void HttpClient::setURL(const std::string& url)
 {
-	this->url = "";
-	this->url.append(url_);
+	url_ = url;
 }
 
-void HttpClient::setPostString(string string_post_)
+void HttpClient::setPostString(const std::string& string_post)
 {
-	this->string_post = "";
-	this->string_post.append(string_post_);
+	string_post_ = string_post;
 }
 
-void HttpClient::setSSLCert(string path_cert_, string path_private_key_, string pass_private_key_)
+void HttpClient::setSSLCert(const std::string& path_cert, const std::string& path_private_key, const std::string& pass_private_key)
 {
-	this->path_cert = "";
-	this->path_cert.append(path_cert_);
-	this->path_private_key = "";
-	this->path_private_key.append(path_private_key_);
-	this->pass_private_key = "";
-	this->pass_private_key.append(pass_private_key_);
+	path_cert_ = path_cert;
+	path_private_key_ = path_private_key;
+	pass_private_key_ = pass_private_key;
 }
 
 void HttpClient::execute(void)
 {
-	CURL *curl;
+	CURL* curl;
 	CURLcode res;
 
 	curl = curl_easy_init();
 
 	if(curl) {
-		this->setCurlEasy(curl);
+		setCurlEasy(curl);
 		//Log::log(TAG, "http before perform");
 		res = curl_easy_perform(curl);
 		//Log::log(TAG, "http after perform");
 		if(res != CURLE_OK){
-			this->string_communication_error = curl_easy_strerror(res);
+			string_communication_error_ = curl_easy_strerror(res);
 			//Log::log(TAG, "CURL_NG");
 			fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
 		}else{
-			if(this->size_response_callback > 0) this->response = string(this->buf_response_callback);
+			if(size_response_callback_ > 0) response_ = string(buf_response_callback_);
 		}
 	
-		this->curl_return_code = (int)res;
+		curl_return_code_ = (int)res;
 		long code;
 		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
-		this->code_response = (int)code;
+		code_response_ = (int)code;
 		makeCookie(curl);
 		curl_easy_cleanup(curl);
-		if(this->headerlist) curl_slist_free_all(this->headerlist);
+		if(headerlist_) curl_slist_free_all(headerlist_);
 	}
 }
 
 void HttpClient::setCurlEasy(CURL* curl)
 {
-	curl_easy_setopt(curl, CURLOPT_URL, this->url.c_str());
-	curl_easy_setopt(curl, CURLOPT_TIMEOUT, this->timeout);
+	curl_easy_setopt(curl, CURLOPT_URL, url_.c_str());
+	curl_easy_setopt(curl, CURLOPT_TIMEOUT, timeout_);
 
 	//header
-	this->headerlist = NULL;
-	this->headerlist = curl_slist_append(this->headerlist, "Expect:");
-	this->headerlist = curl_slist_append(this->headerlist, this->header_http.c_str());
-	curl_easy_setopt(curl, CURLOPT_HTTPHEADER, this->headerlist);
+	headerlist_ = NULL;
+	headerlist_ = curl_slist_append(headerlist_, "Expect:");
+	headerlist_ = curl_slist_append(headerlist_, header_http_.c_str());
+	curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerlist_);
 
 	//cookie
-	if(this->cookie_set.length() > 0){
-		int length = this->cookie_set.length();
-		const char *cc = this->cookie_set.c_str();
+	if(cookie_set_.length() > 0){
+		int length = cookie_set_.length();
+		const char *cc = cookie_set_.c_str();
 		int start = 0;
 		for(int i=0;i<length;++i){
 			if(*(cc+i) == '\n'){
-				string s(this->cookie_set, start, i-start-1);
+				string s(cookie_set_, start, i-start-1);
 				start = i+1;
 				//printf("%s\n", s.c_str());
 				curl_easy_setopt(curl, CURLOPT_COOKIELIST, s.c_str());
@@ -115,26 +112,26 @@ void HttpClient::setCurlEasy(CURL* curl)
 	}
 
 	//ssl
-	if(this->path_cert.size() > 0){
+	if(path_cert_.size() > 0){
 		curl_easy_setopt(curl, CURLOPT_SSLCERTTYPE, HttpClient::FORMAT_CERT);
-		curl_easy_setopt(curl, CURLOPT_SSLCERT, this->path_cert.c_str());
-		curl_easy_setopt(curl, CURLOPT_SSLKEYPASSWD, this->pass_private_key.c_str());
+		curl_easy_setopt(curl, CURLOPT_SSLCERT, path_cert_.c_str());
+		curl_easy_setopt(curl, CURLOPT_SSLKEYPASSWD, pass_private_key_.c_str());
 		curl_easy_setopt(curl, CURLOPT_SSLKEYTYPE, HttpClient::FORMAT_KEY);
-		curl_easy_setopt(curl, CURLOPT_SSLKEY, this->path_private_key.c_str());
+		curl_easy_setopt(curl, CURLOPT_SSLKEY, path_private_key_.c_str());
 		curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
 		curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
 	}
 
-	if(this->multipart_post){
+	if(multipart_post_){
 		//multipart
 		curl_easy_setopt(curl, CURLOPT_POST, 1);
-		curl_easy_setopt(curl, CURLOPT_HTTPPOST, this->multipart_post);
-	}else if(this->string_post.length() > 0){
+		curl_easy_setopt(curl, CURLOPT_HTTPPOST, multipart_post_);
+	}else if(string_post_.length() > 0){
 		//string
 		curl_easy_setopt(curl, CURLOPT_POST, 1);
-		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, this->string_post.c_str());
+		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, string_post_.c_str());
 		//post field size -1だとバグる。内部のstrlen()がおかしい？
-		curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, this->string_post.length());
+		curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, string_post_.length());
 	}
 
 	//response callback
@@ -149,21 +146,21 @@ void HttpClient::setCurlEasy(CURL* curl)
 	//curl_easy_setopt(curl, CURLOPT_DEBUGFUNCTION, debugCallback);
 }
 
-size_t HttpClient::writeMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp)
+size_t HttpClient::writeMemoryCallback(void* contents, size_t size, size_t nmemb, void* userp)
 {
-	size_t realsize = size*nmemb;
-	HttpClient *thisa = (HttpClient *)userp;
+	size_t realsize = size * nmemb;
+	HttpClient* thisa = (HttpClient*)userp;
 
-  thisa->buf_response_callback = (char *)realloc(thisa->buf_response_callback, thisa->size_response_callback + realsize + 1);
-  if(thisa->buf_response_callback == NULL) {
+  thisa->buf_response_callback_ = (char*)realloc(thisa->buf_response_callback_, thisa->size_response_callback_ + realsize + 1);
+  if(thisa->buf_response_callback_ == NULL) {
     //out of memory!
 	  //Log::log(TAG, "not enough memory (realloc returned NULL)");
     return 0;
   }
 
-  memcpy(&(thisa->buf_response_callback[thisa->size_response_callback]), contents, realsize);
-  thisa->size_response_callback += realsize;
-  thisa->buf_response_callback[thisa->size_response_callback] = 0;
+  memcpy(&(thisa->buf_response_callback_[thisa->size_response_callback_]), contents, realsize);
+  thisa->size_response_callback_ += realsize;
+  thisa->buf_response_callback_[thisa->size_response_callback_] = 0;
 
   return realsize;
 }
@@ -246,16 +243,16 @@ int HttpClient::debugCallback(CURL* curl_handle, curl_infotype infotype, char* c
     return 0;
 }
 
-void HttpClient::makeCookie(CURL *curl)
+void HttpClient::makeCookie(CURL* curl)
 {
-	this->cookie_got = "";
-	struct curl_slist *cookies;
+	cookie_got_ = "";
+	struct curl_slist* cookies;
 	curl_easy_getinfo(curl, CURLINFO_COOKIELIST, &cookies);
 	if(cookies){
 		struct curl_slist *nc = cookies;
 		while (nc) {
-			this->cookie_got.append(nc->data);
-			this->cookie_got.append("\n");
+			cookie_got_.append(nc->data);
+			cookie_got_.append("\n");
 			nc = nc->next;
 		}
 	}

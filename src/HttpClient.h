@@ -1,72 +1,70 @@
 #ifndef __U_HTTP_CLIENT__
 #define __U_HTTP_CLIENT__
 
-#include <stdio.h>
 #include <curl/curl.h>
+#include <stdio.h>
 #include <string>
 #include <stdlib.h>
 
-using namespace std;
-
 class HttpClient {
 public:
-	HttpClient(string url_);
+	HttpClient(const std::string& url);
 	~HttpClient();
-	void setURL(string url_);
-	void setHeader(string header_){this->header_http = header_;}
-	void setPostString(string string_post_);
-	void setSSLCert(string path_cert_, string path_private_key_, string pass_private_key_);
-	size_t getSizeBinary(void){return this->size_response_callback;}
-	const char *getPBinary(void){return this->buf_response_callback;}
+	void setURL(const std::string& url);
+	void setHeader(const std::string& header){header_http_ = header;}
+	void setPostString(const std::string& string_post);
+	void setSSLCert(const std::string& path_cert, const std::string& path_private_key, const std::string& pass_private_key);
+	size_t getSizeBinary(void){return size_response_callback_;}
+	const char* getPBinary(void){return buf_response_callback_;}
 	void execute(void);
-	string getCookie(void){return this->cookie_got;}
-	void setCookie(string cookie){this->cookie_set = cookie;}
-	string getStringError();
-	void setTimeout(int sec){this->timeout = sec;}
-	void setMultipartPost(struct curl_httppost *post){this->multipart_post = post;}
-	string getStringResponse(void){return this->response;}
-	int getCodeResponse(void){return this->code_response;}
-	int getCurlReturnCode(void){return this->curl_return_code;}
+	std::string getCookie(void){return cookie_got_;}
+	void setCookie(const std::string& cookie){cookie_set_ = cookie;}
+	std::string getStringError();
+	void setTimeout(int sec){timeout_ = sec;}
+	void setMultipartPost(struct curl_httppost* post){multipart_post_ = post;}
+	std::string getStringResponse(void){return response_;}
+	int getCodeResponse(void){return code_response_;}
+	int getCurlReturnCode(void){return curl_return_code_;}
 
 private:
-	static size_t writeMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp);
-	static int debugCallback (CURL* curl_handle, curl_infotype infotype, char* chr, size_t size, void* unused);
+	static size_t writeMemoryCallback(void* contents, size_t size, size_t nmemb, void* userp);
+	static int debugCallback(CURL* curl_handle, curl_infotype infotype, char* chr, size_t size, void* unused);
 	//証明書のファイルフォーマット
-	static const char * FORMAT_CERT;
+	static const char* FORMAT_CERT;
 	//秘密鍵のファイルフォーマット
-	static const char * FORMAT_KEY;
-	void makeCookie(CURL *curl);
+	static const char* FORMAT_KEY;
+	void makeCookie(CURL* curl);
 	void setCurlEasy(CURL* curl);
 
 	//通信対象URL
-	string url;
+	std::string url_;
 	//送信ヘッダ
-	string header_http;
+	std::string header_http_;
 	//HttpClient use either of p_post or string_post or multipart_post
-	string string_post;
-	struct curl_httppost *multipart_post;
+	std::string string_post_;
+	struct curl_httppost* multipart_post_;
 	//証明書
-	string path_cert;
-	string path_private_key;
-	string pass_private_key;
+	std::string path_cert_;
+	std::string path_private_key_;
+	std::string pass_private_key_;
 	//送信時に使うクッキー
-	string cookie_set;
+	std::string cookie_set_;
 	//送信後にサーバから取得したクッキー
-	string cookie_got;
+	std::string cookie_got_;
 	//通信エラーが起きたかどうか
-	bool flag_communication_error;
+	bool flag_communication_error_;
 	//通信エラー内容の文字列
-	string string_communication_error;
+	std::string string_communication_error_;
 	//タイムアウト
-	int timeout;
+	int timeout_;
 
-	string response;
-	int code_response;
-	int curl_return_code;
+	std::string response_;
+	int code_response_;
+	int curl_return_code_;
 
-	char* buf_response_callback;
-	size_t size_response_callback;
-	struct curl_slist* headerlist;
+	char* buf_response_callback_;
+	size_t size_response_callback_;
+	struct curl_slist* headerlist_;
 
 };
 

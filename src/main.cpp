@@ -18,13 +18,8 @@ int main(int argc, char** argv){
 		cout << *ite << endl;
 	}
 */
-	string url = aws_util::get_transcribe_transcription_url("0");
-	cout << url << endl;
-	HttpClient http_client(url);
-	http_client.execute();
-	string res = http_client.getStringResponse();
-	cout << "response:" << res << endl;
-
+	string transcription = aws_util::get_transcribe_transcription("0");
+	cout << transcription << endl;
 
 	return 0;
 }
