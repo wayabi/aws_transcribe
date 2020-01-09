@@ -102,7 +102,7 @@ bool aws_util::rm_s3(const char* s3_dir, const char* s3_file)
 	return (ret.find("delete:") != std::string::npos);
 }
 
-bool aws_util::start_transcribe_job(const char* path_mp3, const char* s3_dir, const char* request_id)
+bool aws_util::start_transcribe_job(const char* path_mp3, const char* s3_dir, const char* request_id, const char* dir_tmp)
 {
 	string name = get_file_name(path_mp3);
 	bool ret0 = put_s3(path_mp3, s3_dir, name.c_str());
@@ -112,7 +112,7 @@ bool aws_util::start_transcribe_job(const char* path_mp3, const char* s3_dir, co
 	string json = json_start_transcribe_job(request_id, s3_dir, name.c_str());
 
 	stringstream ss;
-	ss << "tmp/json/" << request_id;
+	ss << dir_tmp << "/" << request_id;
 	string path_json = ss.str();
 	ofstream f_json(path_json.c_str());
 	f_json << json;
